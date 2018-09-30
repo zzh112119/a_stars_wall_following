@@ -18,17 +18,13 @@ MIN_ANGLE = -45.0
 MAX_ANGLE = 225.0
 a = 0.0
 b = 0.0
+
 # data: single message from topic /scan
 # angle: between -45 to 225 degrees, where 0 degrees is directly to the right
 # Outputs length in meters to object with angle in lidar scan field of view
 def getRange(data, angle, old_range):
 
   ranges = np.asarray(data.ranges)
-  # Create angle features
-  # angles_raw = np.arange(data.angle_min, data.angle_max, data.angle_increment)
-  # angles = [i*180/pi for i in angles_raw]
-  # increment = data.angle_increment * 180 / math.pi
-  # angle_index = np.where(angles<=(angle+increment/2) or angles>(angle-increment/2))
   angle_index = (angle + 45) * 4
   if ranges[angle_index] == np.nan or ranges[angle_index] == np.inf:
     return old_range
@@ -86,9 +82,9 @@ def followCenter(data):
 # data: the LIDAR data, published as a list of distances to the wall.
 def scan_callback(data):
   desired_distance = 0.8
-  # error = followLeft(data,desired_distance) 
+  error = followLeft(data,desired_distance) 
   # error = followRight(data,desired_distance) 
-  error = followCenter(data) 
+  # error = followCenter(data) 
 
   msg = Float64()
   msg.data = error
@@ -97,6 +93,6 @@ def scan_callback(data):
 # Boilerplate code to start this ROS node.
 # DO NOT MODIFY!
 if __name__ == '__main__':
-	rospy.init_node('pid_error_node', anonymous = True)
-	rospy.Subscriber("scan", LaserScan, scan_callback)
-	rospy.spin()
+  rospy.init_node('pid_error_node', anonymous = True)
+  rospy.Subscriber("scan", LaserScan, scan_callback)
+  rospy.spin()

@@ -109,7 +109,8 @@ class control_loop:
 	def __init__(self):
 		# TODO: modify these constants to make the car follow walls smoothly.
 		self.KP = 5
-		self.KD = 0.3
+		self.KI = 0.1
+		self.KD = 0.4
 		self.last_angle = 0.0
 		self.last_vel = 0.5
 		self.pid_last = 0.0
@@ -124,6 +125,7 @@ class control_loop:
 
 	def calculate_angle(self,data,vel):
 		self.pid.setKp(self.KP)
+		self.pid.setKi(self.KI)
 		self.pid.setKd(self.KD)
 		self.pid.SetPoint = 0.0
 		self.pid.setSampleTime = 1.0 / 40.0
@@ -157,7 +159,7 @@ class control_loop:
 		# self.pid.setKd(self.KD)
 
 		self.msg.angle = self.calculate_angle(data,self.last_vel)   # TODO: implement PID for steering angle
-		self.msg.velocity = self.calculate_vel(self.last_angle)  # TODO: implement PID for velocity
+		self.msg.velocity = self.calculate_vel(self.msg.angle)  # TODO: implement PID for velocity
 	 	self.last_vel = self.msg.velocity
 		self.last_angle = self.msg.angle
 
