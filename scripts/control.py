@@ -110,7 +110,7 @@ class control_loop:
 		# TODO: modify these constants to make the car follow walls smoothly.
 		self.KP = 5
 		self.KI = 0.1
-		self.KD = 0.4
+		self.KD = 0.8
 		self.last_angle = 0.0
 		self.last_vel = 0.5
 		self.pid_last = 0.0
