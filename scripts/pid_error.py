@@ -81,7 +81,7 @@ def followCenter(data):
 # Callback for receiving LIDAR data on the /scan topic.
 # data: the LIDAR data, published as a list of distances to the wall.
 def scan_callback(data):
-  desired_distance = 0.8
+  desired_distance = 0.5
   error = followLeft(data,desired_distance) 
   # error = followRight(data,desired_distance) 
   # error = followCenter(data) 
