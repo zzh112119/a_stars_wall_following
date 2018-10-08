@@ -152,9 +152,9 @@ class control_loop:
 		if (angle_d>=0) and (angle_d<10): #when going straight, go at the commanded velocity
 			vel = commanded_vel
 		elif (angle_d>=10) and (angle_d<20):
-			vel = 1.0
+			vel = commanded_vel/2
 		else:
-			vel = 0.5
+			vel = commanded_vel/3
 		return vel
 
 	# Callback for receiving PID error data on the /pid_error topic
