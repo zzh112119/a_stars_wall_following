@@ -7,8 +7,9 @@ import numpy as np
 import math
 import csv
 
-class pid_controller:
+commanded_vel = 0.0
 
+class pid_controller:
 
 	def __init__(self, P=0.0, I=0.0, D=0.0):
 
@@ -48,7 +49,7 @@ class pid_controller:
 		"""
 		error = feedback_value - self.SetPoint 
 		# print(self.SetPoint)
-		# //print("ERROR:",error)
+		# print("ERROR:",error)
 		self.current_time = rospy.get_time()
 		delta_time = self.current_time - self.last_time
 		#delta_time = 1.0 / self.frequency
@@ -56,10 +57,9 @@ class pid_controller:
 
 		if (delta_time >= self.sample_time):
 			self.PTerm = self.Kp * error
-
-			if(abs(error)<0.005):
-				self.ITerm=0
-			self.ITerm += error * delta_time
+			if(abs(error)<0.02):
+				self.ITerm=0;
+			self.ITerm -= error * delta_time
 
 			# if (self.ITerm < -self.windup_guard):
 			#     self.ITerm = -self.windup_guard
@@ -111,8 +111,6 @@ class pid_controller:
 
 class control_loop:
 
-	
-
 	def __init__(self):
 		# TODO: modify these constants to make the car follow walls smoothly.
 		self.KP = 3
@@ -127,8 +125,9 @@ class control_loop:
 		self.pid = pid_controller()	
 
 		self.max_rad_angle = 30*math.pi/180
+		
 		rospy.Subscriber("pid_error", Float64, self.control_callback)
-
+		rospy.Subscriber("command_velocity", Float64, self.setVel)
 
 	def calculate_angle(self,data,vel):
 		self.pid.setKp(self.KP)
@@ -146,32 +145,34 @@ class control_loop:
 		return output_angle
 
 	def calculate_vel(self,angle):
-		vel = 0.0
-		angle_d = abs(angle * 180 / math.pi)
-		if (angle_d>=0) and (angle_d<10):
-			vel = 1.5
-		elif (angle_d>=10) and (angle_d<20):
-			vel = 1.0
-		else:
-			vel = 0.5
-		return vel
 
+		global commanded_vel
+
+		angle_d = abs(angle * 180 / math.pi)
+		if (angle_d>=0) and (angle_d<10): #when going straight, go at the commanded velocity
+			vel = commanded_vel
+		elif (angle_d>=10) and (angle_d<20):
+			vel = commanded_vel/2
+		else:
+			vel = commanded_vel/3
+		return vel
 
 	# Callback for receiving PID error data on the /pid_error topic
 	# data: the PID error from pid_error_node, published as a Float64
 	def control_callback(self,data):
-	  # TODO: Based on the error (data.data), determine the car's required velocity
-	  # amd steering angle.
-		# self.pid.setKp(self.KP)
-		# self.pid.setKd(self.KD)
 
 		self.msg.angle = self.calculate_angle(data,self.last_vel)   # TODO: implement PID for steering angle
-		self.msg.velocity = self.calculate_vel(self.msg.angle)  # TODO: implement PID for velocity
-	 	self.last_vel = self.msg.velocity
+		self.msg.velocity = self.calculate_vel(self.msg.angle)  # Commented because now velocity is commanded
+	 	self.last_vel = self.msg.velocity #Commented because now velocity is commanded
 		self.last_angle = self.msg.angle
 
-	def send_command(self):
+	def setVel(self,data):
 
+		global commanded_vel
+
+		commanded_vel = data.data
+
+	def send_command(self):
 		self.pub.publish(self.msg)
 		#print("SENT")
 

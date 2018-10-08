@@ -122,20 +122,20 @@ def scan_callback(data):
 		#print("following left without turn")
 
 	if (getRange(data,180,b)>1.5 and getRange(data,0,b)>1.5):
-		#print("there is an intersection")	
+		print("there is an intersection")	
 		if(turns_array[i][0]=="center"):
 			error = followCenter(data)
 			m=1
 		elif(turns_array[i][0]=="left"):
-			#print("taking left turn")
+			print("taking left turn")
 			error = followLeft(data,desired_distance)
 		elif(turns_array[i][0]=="right"):
 			error = followRight(data,desired_distance)
-			#print("taking right turn")
+			print("taking right turn")
 		k=1
 
 	elif (getRange(data,180,b)>1.5 and getRange(data,0,b)<1.5):
-		#print("there is a left turn")
+		print("there is a left turn")
 		if(turns_array[i][0]=="left"):
 			print("taking left turn")
 			error = followLeft(data,desired_distance)
@@ -146,10 +146,10 @@ def scan_callback(data):
 		k=1
 
 	elif (getRange(data,0,b)>1.5 and getRange(data,180,b)<1.5):	
-		#print("there is a right turn")
+		print("there is a right turn")
 		if(turns_array[i][0]=="right"):
 			error = followRight(data,desired_distance)
-			#print("taking right turn")
+			print("taking right turn")
 		elif(turns_array[i][0]=="left"):
 			#print("taking left turn")
 			error = followLeft(data,desired_distance)
@@ -209,9 +209,7 @@ def Position_change(data):
 		print("took a turn")
 		yaw_old=yaw
 		i=i+1
-
-#################################################change i to i-1 for command velocity #########################################
-		commanded_vel = float(turns_array[i-1][1])
+		commanded_vel = float(turns_array[i][1])
 		i_store=i
 		t=0
 
@@ -219,16 +217,15 @@ def Position_change(data):
 		print("was a turn but didnt take it, gotta increment the counter though")
 		#print("center counter increments")
 		i=i_old+1
-##################################################################change i to i-1 for command velocity ################################################
-		commanded_vel = float(turns_array[i-1][1])
+		commanded_vel = float(turns_array[i][1])
 		c_end=0
 
 	i_old=i_store
-	##############################################################velocity publisher kept in this function ############################33
+	
 	v_msg = Float64()
 	v_msg.data = commanded_vel
 	velocityPub.publish(v_msg)
-######################################################################################################################################3
+
 # Boilerplate code to start this ROS node.
 # DO NOT MODIFY!
 if __name__ == '__main__':
