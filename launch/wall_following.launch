@@ -5,7 +5,6 @@
   </include>
 
   # output="screen" allows us to see print statements
-  <node pkg="a_stars_wall_following" name="pid_error_node" type="pid_error.py" output="screen"/> 
   <node pkg="a_stars_wall_following" name="control_node" type="control.py" output="screen"/>
   <node pkg="a_stars_wall_following" name="sim_connector_node" type="sim_connector.py" output="screen"/>
   <node pkg="a_stars_wall_following" name="wall_following_analysis_node" type="wall_following_analysis" output="screen"/>

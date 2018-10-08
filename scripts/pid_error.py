@@ -6,10 +6,24 @@ import numpy as np
 import yaml
 import sys
 from sensor_msgs.msg import LaserScan
+from nav_msgs.msg import Odometry
+from geometry_msgs.msg import *
 from std_msgs.msg import Float64
 import pdb
+import csv
+from tf.msg import tfMessage
+import tf
 
 pub = rospy.Publisher('pid_error', Float64, queue_size=10)
+
+turns_array=[]
+with open('turns.txt','r') as turns_file:
+    turns_reader = csv.reader(turns_file,delimiter=',')
+    #print(turns_reader(1))
+    for row in turns_reader:
+       turns_array.append(row)
+turns_array.pop()
+#print(turns_array)
 
 # You can define constants in Python as uppercase global names like these.
 MIN_DISTANCE = 0.1
@@ -18,6 +32,16 @@ MIN_ANGLE = -45.0
 MAX_ANGLE = 225.0
 a = 0.0
 b = 0.0
+i=0.0
+yaw_old=0.0
+t=0
+i=0
+k=0
+m=0
+i_store = 0 
+i_old = 0
+c_end = 0
+error=0
 
 # data: single message from topic /scan
 # angle: between -45 to 225 degrees, where 0 degrees is directly to the right
@@ -81,18 +105,117 @@ def followCenter(data):
 # Callback for receiving LIDAR data on the /scan topic.
 # data: the LIDAR data, published as a list of distances to the wall.
 def scan_callback(data):
-  desired_distance = 0.8
-  error = followLeft(data,desired_distance) 
-  # error = followRight(data,desired_distance) 
-  # error = followCenter(data) 
+	global a
+	global b
+	global k
+	global m
+	global c_end
+	global error
+	desired_distance = 0.5
 
-  msg = Float64()
-  msg.data = error
-  pub.publish(msg)
+	if(k==0):
+		error = followCenter(data)
+		#print("following left without turn")
+
+
+	if (getRange(data,180,b)>1.5 and getRange(data,0,b)>1.5):
+		#print("there is an intersection")	
+		if(turns_array[i][0]=="center"):
+			error = followCenter(data)
+			m=1
+		elif(turns_array[i][0]=="left"):
+			print("taking left turn")
+			error = followLeft(data,desired_distance)
+		elif(turns_array[i][0]=="right"):
+			error = followRight(data,desired_distance)
+			#print("following center with turn")
+		k=1
+
+	elif (getRange(data,180,b)>1.5 and getRange(data,0,b)<1.5):
+		#print("there is a left turn")
+		if(turns_array[i][0]=="left"):
+			print("taking left turn")
+			error = followLeft(data,desired_distance)
+		elif(turns_array[i][0]=="center"):
+			error = followCenter(data)
+		elif(turns_array[i][0]=="right"):
+			error = followRight(data,desired_distance)
+		k=1
+
+	elif (getRange(data,0,b)>1.5 and getRange(data,180,b)<1.5):	
+		#print("there is a right turn")
+		if(turns_array[i][0]=="right"):
+			error = followRight(data,desired_distance)
+			#print("taking right turn")
+		elif(turns_array[i][0]=="left"):
+			print("taking left turn")
+			error = followLeft(data,desired_distance)
+		elif(turns_array[i][0]=="center"):
+			error = followCenter(data)
+		k=1
+
+	elif(turns_array[i][0]=="stop" and k!=0):
+		error = followCenter(data)
+		#print("stopping")
+
+	# elif(k!=0):
+	# 	error = followCenter(data)
+	# 	print("will follow center now")
+
+	elif (getRange(data,180,b)<1.3 and getRange(data,0,b)<1.3 and k!=0):
+		#print("will follow center")
+		error = followCenter(data)
+		if(m==1):
+			c_end=1
+			m=0
+
+	#print(turns_array[i])
+
+	msg = Float64()
+	msg.data = error
+	pub.publish(msg)
+
+def Position_change(data):
+	global t 
+	global i
+	global yaw_old
+	global i_old
+	global i_store
+	global c_end
+	qx=data.pose.pose.orientation.x
+	qy=data.pose.pose.orientation.y
+	qz=data.pose.pose.orientation.z
+	qw=data.pose.pose.orientation.w
+	quaternion = (qx,qy,qw,qz)
+	euler = tf.transformations.euler_from_quaternion(quaternion)
+	roll = euler[0]
+	pitch = euler[1]
+	yaw = 180*euler[2]/pi
+
+	if(t==0 and yaw!=0):
+		yaw_old=yaw
+		t=10
+
+
+	if(abs(abs(yaw)-abs(yaw_old))>70):
+		print("took a turn")
+		yaw_old=yaw
+		i=i+1
+		i_store=i
+		t=0
+	elif(c_end==1):
+		print("was a turn but didnt take it, gotta increment the counter though")
+		#print("center counter increments")
+		i=i_old+1
+		c_end=0
+	i_old=i_store
+
+	
 
 # Boilerplate code to start this ROS node.
 # DO NOT MODIFY!
 if __name__ == '__main__':
   rospy.init_node('pid_error_node', anonymous = True)
   rospy.Subscriber("scan", LaserScan, scan_callback)
+  rospy.Subscriber('/vesc/odom',Odometry,Position_change)
   rospy.spin()

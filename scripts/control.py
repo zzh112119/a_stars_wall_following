@@ -5,8 +5,10 @@ from race.msg import drive_param
 from std_msgs.msg import Float64
 import numpy as np
 import math
+import csv
 
 class pid_controller:
+
 
 	def __init__(self, P=0.0, I=0.0, D=0.0):
 
@@ -54,7 +56,10 @@ class pid_controller:
 
 		if (delta_time >= self.sample_time):
 			self.PTerm = self.Kp * error
-			self.ITerm -= error * delta_time
+
+			if(abs(error)<0.005):
+				self.ITerm=0
+			self.ITerm += error * delta_time
 
 			# if (self.ITerm < -self.windup_guard):
 			#     self.ITerm = -self.windup_guard
@@ -106,10 +111,12 @@ class pid_controller:
 
 class control_loop:
 
+	
+
 	def __init__(self):
 		# TODO: modify these constants to make the car follow walls smoothly.
-		self.KP = 5
-		self.KI = 0.1
+		self.KP = 3
+		self.KI = 0.001
 		self.KD = 0.8
 		self.last_angle = 0.0
 		self.last_vel = 0.5
@@ -166,7 +173,7 @@ class control_loop:
 	def send_command(self):
 
 		self.pub.publish(self.msg)
-		print("SENT")
+		#print("SENT")
 
 # Boilerplate code to start this ROS node.
 # DO NOT MODIFY!
