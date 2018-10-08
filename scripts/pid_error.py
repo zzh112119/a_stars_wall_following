@@ -14,17 +14,6 @@ import csv
 from tf.msg import tfMessage
 import tf
 
-pub = rospy.Publisher('pid_error', Float64, queue_size=10)
-
-turns_array=[]
-with open('turns.txt','r') as turns_file:
-    turns_reader = csv.reader(turns_file,delimiter=',')
-    #print(turns_reader(1))
-    for row in turns_reader:
-       turns_array.append(row)
-turns_array.pop()
-#print(turns_array)
-
 # You can define constants in Python as uppercase global names like these.
 MIN_DISTANCE = 0.1
 MAX_DISTANCE = 30.0
@@ -42,6 +31,20 @@ i_store = 0
 i_old = 0
 c_end = 0
 error=0
+commanded_vel = 2 #initial velocity should be 2 m/s as the car is going in a straight line. This changes once a turn is made
+
+#Define the publishers
+pub = rospy.Publisher('pid_error', Float64, queue_size=10)
+velocityPub = rospy.Publisher('command_velocity',Float64,queue_size=10)
+
+turns_array=[]
+with open('turns.txt','r') as turns_file:
+    turns_reader = csv.reader(turns_file,delimiter=',')
+    #print(turns_reader(1))
+    for row in turns_reader:
+       turns_array.append(row)
+turns_array.pop()
+#print(turns_array)
 
 # data: single message from topic /scan
 # angle: between -45 to 225 degrees, where 0 degrees is directly to the right
@@ -89,7 +92,6 @@ def followRight(data, desired_distance):
   next_dist = current_dist + L * sin(alpha)
   error_t = desired_distance - current_dist
 
-  # TODO: implement
   return -error_t
 
 # data: single message from topic /scan
@@ -111,15 +113,16 @@ def scan_callback(data):
 	global m
 	global c_end
 	global error
+	global commanded_vel
+
 	desired_distance = 0.5
 
 	if(k==0):
 		error = followCenter(data)
 		#print("following left without turn")
 
-
 	if (getRange(data,180,b)>1.5 and getRange(data,0,b)>1.5):
-		#print("there is an intersection")	
+		print("there is an intersection")	
 		if(turns_array[i][0]=="center"):
 			error = followCenter(data)
 			m=1
@@ -128,11 +131,11 @@ def scan_callback(data):
 			error = followLeft(data,desired_distance)
 		elif(turns_array[i][0]=="right"):
 			error = followRight(data,desired_distance)
-			#print("following center with turn")
+			print("taking right turn")
 		k=1
 
 	elif (getRange(data,180,b)>1.5 and getRange(data,0,b)<1.5):
-		#print("there is a left turn")
+		print("there is a left turn")
 		if(turns_array[i][0]=="left"):
 			print("taking left turn")
 			error = followLeft(data,desired_distance)
@@ -143,12 +146,12 @@ def scan_callback(data):
 		k=1
 
 	elif (getRange(data,0,b)>1.5 and getRange(data,180,b)<1.5):	
-		#print("there is a right turn")
+		print("there is a right turn")
 		if(turns_array[i][0]=="right"):
 			error = followRight(data,desired_distance)
-			#print("taking right turn")
+			print("taking right turn")
 		elif(turns_array[i][0]=="left"):
-			print("taking left turn")
+			#print("taking left turn")
 			error = followLeft(data,desired_distance)
 		elif(turns_array[i][0]=="center"):
 			error = followCenter(data)
@@ -170,10 +173,13 @@ def scan_callback(data):
 			m=0
 
 	#print(turns_array[i])
-
 	msg = Float64()
 	msg.data = error
 	pub.publish(msg)
+
+	v_msg = Float64()
+	v_msg.data = commanded_vel
+	velocityPub.publish(v_msg)
 
 def Position_change(data):
 	global t 
@@ -182,6 +188,8 @@ def Position_change(data):
 	global i_old
 	global i_store
 	global c_end
+	global commanded_vel
+
 	qx=data.pose.pose.orientation.x
 	qy=data.pose.pose.orientation.y
 	qz=data.pose.pose.orientation.z
@@ -196,21 +204,22 @@ def Position_change(data):
 		yaw_old=yaw
 		t=10
 
-
-	if(abs(abs(yaw)-abs(yaw_old))>70):
+	if(abs(abs(yaw)-abs(yaw_old))>80):
 		print("took a turn")
 		yaw_old=yaw
 		i=i+1
+		commanded_vel = float(turns_array[i][1])
 		i_store=i
 		t=0
+
 	elif(c_end==1):
 		print("was a turn but didnt take it, gotta increment the counter though")
 		#print("center counter increments")
 		i=i_old+1
+		commanded_vel = float(turns_array[i][1])
 		c_end=0
-	i_old=i_store
 
-	
+	i_old=i_store
 
 # Boilerplate code to start this ROS node.
 # DO NOT MODIFY!
