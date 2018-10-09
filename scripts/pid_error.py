@@ -115,29 +115,29 @@ def scan_callback(data):
 	global m
 	global c_end
 	global error
-        global direction
+	global direction
 	global commanded_vel
 
 	desired_distance = 0.5
 
 	if(k==0):
 		error = followCenter(data)
-                direction = 'center'
+		direction = 'center'
 		#print("following left without turn")
 
 	if (getRange(data,180,b)>1.5 and getRange(data,0,b)>1.5):
 		#print("there is an intersection")	
 		if(turns_array[i][0]=="center"):
 			error = followCenter(data)
-                        direction = 'center'
+			direction = 'center'
 			m=1
 		elif(turns_array[i][0]=="left"):
 			#print("taking left turn")
 			error = followLeft(data,desired_distance)
-                        direction = 'left'
+			direction = 'left'
 		elif(turns_array[i][0]=="right"):
 			error = followRight(data,desired_distance)
-                        direction = 'right'
+			direction = 'right'
 			#print("taking right turn")
 		k=1
 
@@ -146,33 +146,33 @@ def scan_callback(data):
 		if(turns_array[i][0]=="left"):
 			print("taking left turn")
 			error = followLeft(data,desired_distance)
-                        direction = 'left'
+			direction = 'left'
 		elif(turns_array[i][0]=="center"):
 			error = followCenter(data)
-                        direction = 'center'
+			direction = 'center'
 		elif(turns_array[i][0]=="right"):
 			error = followRight(data,desired_distance)
-                        direction = 'right'
+			direction = 'right'
 		k=1
 
 	elif (getRange(data,0,b)>1.5 and getRange(data,180,b)<1.5):	
 		#print("there is a right turn")
 		if(turns_array[i][0]=="right"):
 			error = followRight(data,desired_distance)
-                        direction = 'right'
+			direction = 'right'
 			#print("taking right turn")
 		elif(turns_array[i][0]=="left"):
 			#print("taking left turn")
 			error = followLeft(data,desired_distance)
-                        direction = 'left'
+			direction = 'left'
 		elif(turns_array[i][0]=="center"):
 			error = followCenter(data)
-                        direction = 'center'
+			direction = 'center'
 		k=1
 
 	elif(turns_array[i][0]=="stop" and k!=0):
 		error = followCenter(data)
-                direction = 'center'
+		direction = 'center'
 		#print("stopping")
 
 	# elif(k!=0):
@@ -182,7 +182,7 @@ def scan_callback(data):
 	elif (getRange(data,180,b)<1.3 and getRange(data,0,b)<1.3 and k!=0):
 		#print("will follow center")
 		error = followCenter(data)
-                direction = 'center'
+		direction = 'center'
 		if(m==1):
 			c_end=1
 			m=0
@@ -192,9 +192,9 @@ def scan_callback(data):
 	msg.data = error
 	pub.publish(msg)
 	
-        directionMsg = String()
-        directionMsg.data = direction
-        directionPub.publish(directionMsg)
+	directionMsg = String()
+ 	directionMsg.data = direction
+	directionPub.publish(directionMsg)
 	
 	
 
