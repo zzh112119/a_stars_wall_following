@@ -8,7 +8,7 @@ import sys
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import *
-from std_msgs.msg import Float64
+from std_msgs.msg import Float64, String
 import pdb
 import csv
 from tf.msg import tfMessage
@@ -31,11 +31,13 @@ i_store = 0
 i_old = 0
 c_end = 0
 error=0
+direction=""
 commanded_vel = 2 #initial velocity should be 2 m/s as the car is going in a straight line. This changes once a turn is made
 
 #Define the publishers
 pub = rospy.Publisher('pid_error', Float64, queue_size=10)
 velocityPub = rospy.Publisher('command_velocity',Float64,queue_size=10)
+directionPub = rospy.Publisher('direction_string', String, queue_size=10)
 
 turns_array=[]
 with open('turns.txt','r') as turns_file:
@@ -113,24 +115,29 @@ def scan_callback(data):
 	global m
 	global c_end
 	global error
+        global direction
 	global commanded_vel
 
 	desired_distance = 0.5
 
 	if(k==0):
 		error = followCenter(data)
+                direction = 'center'
 		#print("following left without turn")
 
 	if (getRange(data,180,b)>1.5 and getRange(data,0,b)>1.5):
 		#print("there is an intersection")	
 		if(turns_array[i][0]=="center"):
 			error = followCenter(data)
+                        direction = 'center'
 			m=1
 		elif(turns_array[i][0]=="left"):
 			#print("taking left turn")
 			error = followLeft(data,desired_distance)
+                        direction = 'left'
 		elif(turns_array[i][0]=="right"):
 			error = followRight(data,desired_distance)
+                        direction = 'right'
 			#print("taking right turn")
 		k=1
 
@@ -139,26 +146,33 @@ def scan_callback(data):
 		if(turns_array[i][0]=="left"):
 			print("taking left turn")
 			error = followLeft(data,desired_distance)
+                        direction = 'left'
 		elif(turns_array[i][0]=="center"):
 			error = followCenter(data)
+                        direction = 'center'
 		elif(turns_array[i][0]=="right"):
 			error = followRight(data,desired_distance)
+                        direction = 'right'
 		k=1
 
 	elif (getRange(data,0,b)>1.5 and getRange(data,180,b)<1.5):	
 		#print("there is a right turn")
 		if(turns_array[i][0]=="right"):
 			error = followRight(data,desired_distance)
+                        direction = 'right'
 			#print("taking right turn")
 		elif(turns_array[i][0]=="left"):
 			#print("taking left turn")
 			error = followLeft(data,desired_distance)
+                        direction = 'left'
 		elif(turns_array[i][0]=="center"):
 			error = followCenter(data)
+                        direction = 'center'
 		k=1
 
 	elif(turns_array[i][0]=="stop" and k!=0):
 		error = followCenter(data)
+                direction = 'center'
 		#print("stopping")
 
 	# elif(k!=0):
@@ -168,6 +182,7 @@ def scan_callback(data):
 	elif (getRange(data,180,b)<1.3 and getRange(data,0,b)<1.3 and k!=0):
 		#print("will follow center")
 		error = followCenter(data)
+                direction = 'center'
 		if(m==1):
 			c_end=1
 			m=0
@@ -176,8 +191,10 @@ def scan_callback(data):
 	msg = Float64()
 	msg.data = error
 	pub.publish(msg)
-
 	
+        directionMsg = String()
+        directionMsg.data = direction
+        directionPub.publish(directionMsg)
 	
 	
 
